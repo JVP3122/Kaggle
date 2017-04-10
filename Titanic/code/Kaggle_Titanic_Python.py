@@ -55,7 +55,7 @@ train_data, test_data, train_target, test_target = train_test_split(X_train,y_tr
 clf = XGBClassifier().fit(train_data,train_target.values.ravel())
 
 
-print clf.score(test_data,test_target.values.ravel())
+# print clf.score(test_data,test_target.values.ravel())
 
 
 
@@ -70,33 +70,14 @@ print clf.score(test_data,test_target.values.ravel())
 
 
 """ This section will be used to generate predictions once the appropriate classifier has been chosen """
+results = pd.DataFrame(columns=['PassengerId','Survived'])
+results['PassengerId'] = test['PassengerId']
 
-# test.replace({'Sex':mapping_sex},inplace=True)
-# test.dropna(axis=0,subset=['Age','Fare','Embarked'],inplace=True)
-# # test.dropna(axis=0,subset=['Embarked'],inplace=True)
-# test.replace({'Embarked':mapping_embarked},inplace=True)
+test.replace({'Sex':mapping_sex},inplace=True)
+test.replace({'Embarked':mapping_embarked},inplace=True)
+X_test = test[['Pclass','Sex','Age','SibSp','Parch','Fare','Embarked']]
+X_test = imp.fit_transform(X_test)
+X_test = scaler.transform(X_test)
+results['Survived'] = clf.predict(X_test)
 
-# X_test = test[['Pclass','Sex','Age','SibSp','Parch','Fare','Embarked']]
-# X_test.to_csv('xtest.csv',sep=',')
-# # y_test = test[['Survived']]
-
-# X_test.is_copy
-
-# # X_test.dropna(axis=1,inplace=True)
-
-# clf = LinearSVC()
-# clf.fit(X_train,y_train.values.ravel())
-# results = clf.predict(X_test)
-
-# print results
-
-
-# #Print to standard output, and see the results in the "log" section below after running your script
-# # print("\n\nTop of the training data:")
-# # print(train.head(15))
-
-# # print("\n\nSummary statistics of training data")
-# # print(train.describe())
-
-# #Any files you save will be available in the output tab below
-# train.to_csv('copy_of_the_training_data.csv', index=False)
+results.to_csv('Titanic_Results.csv',sep=',',index=False)
