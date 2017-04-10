@@ -39,7 +39,7 @@ scaler = preprocessing.StandardScaler().fit(X_train)
 X_train = scaler.transform(X_train)
 
 # Cross Validation
-train_data, test_data, train_target, test_target = train_test_split(X_train,y_train,test_size=0.3,random_state=0)
+# train_data, test_data, train_target, test_target = train_test_split(X_train,y_train,test_size=0.3,random_state=0)
 
 
 # Trying a bunch of different classifiers
@@ -52,7 +52,7 @@ train_data, test_data, train_target, test_target = train_test_split(X_train,y_tr
 # clf = GaussianNB().fit(train_data,train_target.values.ravel())
 # clf = SVC(gamma=2, C=1).fit(train_data,train_target.values.ravel())
 # clf = AdaBoostClassifier().fit(train_data,train_target.values.ravel())
-clf = XGBClassifier().fit(train_data,train_target.values.ravel())
+clf = XGBClassifier().fit(X_train,y_train.values.ravel())
 
 
 # print clf.score(test_data,test_target.values.ravel())
