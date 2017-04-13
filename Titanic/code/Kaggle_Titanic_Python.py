@@ -102,7 +102,7 @@ def mean_analysis(df,column_vals):
 		print
 
 
-def evaluation(classifiers):
+def evaluation(classifiers,train_data,train_target,test_data,test_target):
 	scores = []
 	f_scores = []
 	t0 = time()
@@ -113,7 +113,7 @@ def evaluation(classifiers):
 		f_score = 0.5 * (precision_recall_fscore_support(test_target,y_pred)[2][0] + precision_recall_fscore_support(test_target,y_pred)[2][1])
 		f_scores.append(f_score)
 	print 'done in %0.3fs' % (time() - t0)
-	return zip(scores,f_scores)
+	return scores,f_scores
 
 
 def main():
@@ -186,7 +186,7 @@ def main():
 	train.replace({'Embarked':mapping_embarked},inplace=True)
 	train.replace({'Title':mapping_title},inplace=True)
 
-	# Create DF with only numeric values for data, use imputer to replace NaNs with mean
+	# Create DF with only numeric values for data
 	X_train = train[['Pclass','Sex','Age','Family_Size','Cabin_Length','Fare','Embarked']]
 	y_train = train['Survived']
 
@@ -198,7 +198,7 @@ def main():
 	train_data, test_data, train_target, test_target = train_test_split(X_train,y_train,test_size=0.5,random_state=0)
 
 	# Trying a bunch of different classifiers
-	classifiers = [LinearSVC(), tree.DecisionTreeClassifier(), LinearSVC(), tree.DecisionTreeClassifier(), KNeighborsClassifier(), DecisionTreeClassifier(max_depth=5), RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1), MLPClassifier(alpha=1), GaussianNB(), SVC(gamma=2, C=1), AdaBoostClassifier(), XGBClassifier()]
+	classifiers = [LinearSVC(), KNeighborsClassifier(), DecisionTreeClassifier(max_depth=5), RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1), MLPClassifier(alpha=1), GaussianNB(), SVC(gamma=2, C=1), AdaBoostClassifier(), XGBClassifier()]
 
 	# print 'Classifier score:', clf.score(test_data,test_target.values.ravel())
 
@@ -220,8 +220,9 @@ def main():
 	# print 0.5 * (precision_recall_fscore_support(y_train,y_pred)[2][0] + precision_recall_fscore_support(y_train,y_pred)[2][1])
 	# print '*******************************************'
 
-	print max(evaluation(classifiers)[:][1])
-
+	# print max(evaluation(classifiers,train_data,train_target,test_data,test_target)[:][1])
+	_ , f_scores = evaluation(classifiers,train_data,train_target,test_data,test_target)
+	print f_scores.index(max(f_scores))
 
 
 
@@ -255,18 +256,25 @@ def main():
 	print 'Checking Fare NaNs after first replacement:', len(test[pd.isnull(test['Fare'])])
 
 
+	test['Cabin_Length'] = test['Cabin'].str.split(' ').str.len()
+	test['Cabin_Length'].fillna(0,inplace=True)
+	test['Family_Size'] = test['SibSp'] + test['Parch']
+
+
+
 	# """ Model Predicting """
-	# # results = pd.DataFrame(columns=['PassengerId','Survived'])
-	# # results['PassengerId'] = test['PassengerId']
+	clf = XGBClassifier()
+	clf.fit(X_train,y_train)
+	results = pd.DataFrame(columns=['PassengerId','Survived'])
+	results['PassengerId'] = test['PassengerId']
 
-	# # test.replace({'Sex':mapping_sex},inplace=True)
-	# # test.replace({'Embarked':mapping_embarked},inplace=True)
-	# # X_test = test[['Pclass','Sex','Age','SibSp','Parch','Fare','Embarked']]
-	# # X_test = imp.fit_transform(X_test)
-	# # X_test = scaler.transform(X_test)
-	# # results['Survived'] = clf.predict(X_test)
+	test.replace({'Sex':mapping_sex},inplace=True)
+	test.replace({'Embarked':mapping_embarked},inplace=True)
+	X_test = test[['Pclass','Sex','Age','Family_Size','Cabin_Length','Fare','Embarked']]
+	X_test = scaler.transform(X_test)
+	results['Survived'] = clf.predict(X_test)
 
-	# # results.to_csv('Titanic_Results.csv',sep=',',index=False)
+	results.to_csv('Titanic_Results.csv',sep=',',index=False)
 
 	plt.show(block=False)
 	raw_input('Press [enter] to close.')
