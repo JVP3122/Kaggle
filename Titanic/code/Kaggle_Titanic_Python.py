@@ -217,13 +217,11 @@ def main():
 	print train.head()
 	input()
 
-
-
 	colormap = plt.cm.viridis
 	plt.figure(figsize=(12,12))
 	plt.title('Pearson Correlation of Features', y=1.05, size=15)
 	sns.heatmap(train.corr(),linewidths=0.1,vmax=1.0, square=True, cmap=colormap, linecolor='white', annot=True)
-	pt.plot_correlation_map(train)
+	# pt.plot_correlation_map(train)
 	plt.show(block=False)
 
 	print train.corr()['Survived']
