@@ -11,7 +11,7 @@ from sklearn.neural_network import MLPClassifier
 
 from sklearn.model_selection import train_test_split, learning_curve, ShuffleSplit
 from sklearn import preprocessing
-from sklearn.preprocessing import Imputer
+from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import confusion_matrix, classification_report, precision_recall_fscore_support
 
 from xgboost import XGBClassifier
@@ -26,9 +26,17 @@ from plot_learning_curve import plot_learning_curve
 
 from time import time
 
+
+import plotting as pt
+
+
 import os
 
 os.system('clear')
+
+
+def input():
+	raw_input('press enter...')
 
 def print_hist(df,survival = None,bins = 25,xlabel = 'x data',ylabel = 'y data',title = 'Title',normed = False):
 	temp_df = df.copy()
@@ -133,7 +141,9 @@ def main():
 	print 'Embarked NaNs:', len(train[pd.isnull(train['Embarked'])])
 	print '*******************************************'
 	
-	seaborn_hist(train,'Age','Age Distributions Before Replacement')
+	pt.plot_distribution( train , var = 'Age' , target = 'Survived' , row = 'Sex' )
+	pt.plot_distribution( train , var = 'Fare' , target = 'Survived' , row = 'Sex' )
+	input()
 
 	# Replacing on fine grouping
 	print 'Replacing Age NaNs with categorical means for Class, Sex, Siblings, Parent/Child'
@@ -149,43 +159,78 @@ def main():
 	train['Embarked'].fillna('S',inplace=True)
 	print 'Checking Embarked NaNs after replacement:', len(train[pd.isnull(train['Embarked'])])
 
+	seaborn_hist(train,'Age','Age Distributions Before Replacement')
 	seaborn_hist(train,'Age', 'Age Distributions After Replacement')
+
+	# Create a Family Size column
+	train['Family_Size'] = train['SibSp'] + train['Parch']
 
 	# Creating Titles column in DataFrame
 	titles = sorted(set([x for x in train.Name.map(lambda x:get_title(x))]))
 	print 'List of titles in data'
 	print len(titles),':',titles
-
 	train['Title'] = train['Name'].map(lambda x:get_title(x))
 	train['Title'] = train.apply(replace_titles,axis = 1)
-
-	print train.Title.value_counts()
-
 
 	print '*******************************************'
 
 	# Determine the number of cabins reserved per person
-	train['Cabin_Length'] = train['Cabin'].str.split(' ').str.len()
-	train['Cabin_Length'].fillna(0,inplace=True)
+	# print train['Deck'].unique()
+	# raw_input('press enter...')
+	# train['Cabin_Length'] = train['Cabin'].str.split(' ').str.len()
+	# train['Cabin_Length'].fillna(0,inplace=True)
 
-	# Create a Family Size column
-	train['Family_Size'] = train['SibSp'] + train['Parch']
-
-	column_vals = ['Cabin_Length','Sex','Fare','Age','Pclass','Family_Size','Title','Embarked']
+	column_vals = ['Sex','Fare','Age','Pclass','Family_Size','Title','Embarked']
 	mean_analysis(train,column_vals)
 	print '*******************************************'
 
 
-	""" Model Training """
-	# Map sex, port of embarkation to numeric values
-	mapping_sex = {'female':0,'male':1}
-	mapping_embarked = {'Q':0,'S':1,'C':2}
-	mapping_title = {'Mr':0, 'Mrs':1, 'Ms':2, 'Miss':3, 'Master':4}
-	
-	train.replace({'Sex':mapping_sex},inplace=True)
-	train.replace({'Embarked':mapping_embarked},inplace=True)
-	train.replace({'Title':mapping_title},inplace=True)
+	""" Creating deck from cabin, age label bands, fare label bands, titles from names, and applying LabelEncoder to categorical variables """	
+	# Convert Categorical Variables to Numerical
+	le_age = LabelEncoder()
+	le_fare = LabelEncoder()
+	le_title = LabelEncoder()
+	le_embarked = LabelEncoder()
+	le_deck = LabelEncoder()
+	le_sex = LabelEncoder()
 
+	train['Deck'] = train['Cabin'].str[0]
+	train['Deck'].fillna('Z',inplace=True)
+
+	age_labels = ['Band_1','Band_2','Band_3','Band_4','Band_5','Band_6','Band_7','Band_8','Band_9','Band_10']
+	train['AgeBand'] = pd.cut(train['Age'],bins=10,labels=age_labels)
+	train['AgeBand'] = le_age.fit_transform(train['AgeBand'])
+
+	fare_labels = ['Band_1','Band_2','Band_3','Band_4','Band_5','Band_6','Band_7','Band_8','Band_9','Band_10']
+	train['FareBand'] = pd.cut(train['Fare'],bins=10,labels=fare_labels)
+	train['FareBand'] = le_fare.fit_transform(train['FareBand'])
+
+	train['Title'] = le_title.fit_transform(train['Title'])
+
+	train['Embarked'] = le_embarked.fit_transform(train['Embarked'])
+
+	train['Deck'] = le_deck.fit_transform(train['Deck'])
+
+	train['Sex'] = le_sex.fit_transform(train['Sex'])
+
+	train.drop(['PassengerId','Name','Age','SibSp','Parch','Ticket','Fare','Cabin'],inplace=True,axis=1)
+	print train.head()
+	input()
+
+
+
+	colormap = plt.cm.viridis
+	plt.figure(figsize=(12,12))
+	plt.title('Pearson Correlation of Features', y=1.05, size=15)
+	sns.heatmap(train.corr(),linewidths=0.1,vmax=1.0, square=True, cmap=colormap, linecolor='white', annot=True)
+	pt.plot_correlation_map(train)
+	plt.show(block=False)
+
+	print train.corr()['Survived']
+	input()
+
+
+	""" Model Training """
 	# Create DF with only numeric values for data
 	X_train = train[['Pclass','Sex','Age','Family_Size','Cabin_Length','Fare','Embarked']]
 	y_train = train['Survived']
